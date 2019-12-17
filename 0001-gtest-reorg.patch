@@ -1,0 +1,42 @@
+From 3b2afecc227d652f84f883d4018d43971de6a311 Mon Sep 17 00:00:00 2001
+From: Tom Stellard <tstellar@redhat.com>
+Date: Wed, 21 Mar 2018 07:17:00 -0700
+Subject: [PATCH] gtest reorg
+
+---
+ CMakeLists.txt | 12 +++++-------
+ 1 file changed, 5 insertions(+), 7 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 2eee8e6..01d290f 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -142,12 +142,6 @@ Please install Python or specify the PYTHON_EXECUTABLE CMake variable.")
+         set(LLVM_UTILS_PROVIDED ON)
+         set(CLANG_TEST_DEPS FileCheck count not)
+       endif()
+-      set(UNITTEST_DIR ${LLVM_MAIN_SRC_DIR}/utils/unittest)
+-      if(EXISTS ${UNITTEST_DIR}/googletest/include/gtest/gtest.h
+-          AND NOT EXISTS ${LLVM_LIBRARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}gtest${CMAKE_STATIC_LIBRARY_SUFFIX}
+-          AND EXISTS ${UNITTEST_DIR}/CMakeLists.txt)
+-        add_subdirectory(${UNITTEST_DIR} utils/unittest)
+-      endif()
+     else()
+       # Seek installed Lit.
+       find_program(LLVM_LIT
+@@ -477,7 +471,11 @@ endif()
+ 
+ 
+ if( CLANG_INCLUDE_TESTS )
+-  if(EXISTS ${LLVM_MAIN_SRC_DIR}/utils/unittest/googletest/include/gtest/gtest.h)
++  set(UNITTEST_DIR ${LLVM_MAIN_SRC_DIR}/utils/unittest)
++  if(EXISTS ${UNITTEST_DIR}/googletest/include/gtest/gtest.h
++      AND NOT EXISTS ${LLVM_LIBRARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}gtest${CMAKE_STATIC_LIBRARY_SUFFIX}
++      AND EXISTS ${UNITTEST_DIR}/CMakeLists.txt)
++    add_subdirectory(${UNITTEST_DIR} utils/unittest)
+     add_subdirectory(unittests)
+     list(APPEND CLANG_TEST_DEPS ClangUnitTests)
+     list(APPEND CLANG_TEST_PARAMS
+-- 
+1.8.3.1
+

@@ -1,0 +1,93 @@
+From c760f8d703af0c67774681b5a259d5dd3a1e5a77 Mon Sep 17 00:00:00 2001
+From: Tom Stellard <tstellar@redhat.com>
+Date: Wed, 19 Sep 2018 08:53:10 -0700
+Subject: [PATCH] Convert scan-view to python3 using 2to3
+
+---
+ tools/scan-view/bin/scan-view | 24 ++++++++++++------------
+ 1 file changed, 12 insertions(+), 12 deletions(-)
+
+diff --git a/tools/scan-view/bin/scan-view b/tools/scan-view/bin/scan-view
+index 1b6e8ba..ca3dac5 100755
+--- a/tools/scan-view/bin/scan-view
++++ b/tools/scan-view/bin/scan-view
+@@ -7,9 +7,9 @@ import sys
+ import imp
+ import os
+ import posixpath
+-import thread
++import _thread
+ import time
+-import urllib
++import urllib.request, urllib.parse, urllib.error
+ import webbrowser
+ 
+ # How long to wait for server to start.
+@@ -27,7 +27,7 @@ kMaxPortsToTry = 100
+ 
+ def url_is_up(url):
+     try:
+-        o = urllib.urlopen(url)
++        o = urllib.request.urlopen(url)
+     except IOError:
+         return False
+     o.close()
+@@ -35,7 +35,7 @@ def url_is_up(url):
+ 
+ 
+ def start_browser(port, options):
+-    import urllib
++    import urllib.request, urllib.parse, urllib.error
+     import webbrowser
+ 
+     url = 'http://%s:%d' % (options.host, port)
+@@ -52,10 +52,10 @@ def start_browser(port, options):
+             sys.stderr.flush()
+         time.sleep(kSleepTimeout)
+     else:
+-        print >> sys.stderr, 'WARNING: Unable to detect that server started.'
++        print('WARNING: Unable to detect that server started.', file=sys.stderr)
+ 
+     if options.debug:
+-        print >> sys.stderr, '%s: Starting webbrowser...' % sys.argv[0]
++        print('%s: Starting webbrowser...' % sys.argv[0], file=sys.stderr)
+     webbrowser.open(url)
+ 
+ 
+@@ -69,9 +69,9 @@ def run(port, options, root):
+ 
+     import ScanView
+     try:
+-        print 'Starting scan-view at: http://%s:%d' % (options.host,
+-                                                       port)
+-        print '  Use Ctrl-C to exit.'
++        print('Starting scan-view at: http://%s:%d' % (options.host,
++                                                       port))
++        print('  Use Ctrl-C to exit.')
+         httpd = ScanView.create_server((options.host, port),
+                                        options, root)
+         httpd.serve_forever()
+@@ -80,9 +80,9 @@ def run(port, options, root):
+ 
+ 
+ def port_is_open(port):
+-    import SocketServer
++    import socketserver
+     try:
+-        t = SocketServer.TCPServer((kDefaultHost, port), None)
++        t = socketserver.TCPServer((kDefaultHost, port), None)
+     except:
+         return False
+     t.server_close()
+@@ -135,7 +135,7 @@ def main():
+     # Kick off thread to wait for server and start web browser, if
+     # requested.
+     if args.startBrowser:
+-        t = thread.start_new_thread(start_browser, (port, args))
++        t = _thread.start_new_thread(start_browser, (port, args))
+ 
+     run(port, args, args.root)
+ 
+-- 
+1.8.3.1
+
