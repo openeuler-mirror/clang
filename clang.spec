@@ -7,7 +7,7 @@
 
 Name:		clang
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	4
+Release:	5
 License:	NCSA
 Summary:	An "LLVM native" C/C++/Objective-C compiler
 URL:		http://llvm.org
@@ -25,17 +25,17 @@ Patch7:		0001-Convert-scan-view-to-python3-using-2to3.patch
 
 BuildRequires:  cmake gcc-c++ python-sphinx git
 BuildRequires:	llvm-devel = %{version}
+BuildRequires:  compiler-rt = %{version} 
 BuildRequires:  llvm-static = %{version}
 BuildRequires:	llvm-googletest = %{version}
 BuildRequires:	libxml2-devel perl-generators ncurses-devel emacs libatomic
 BuildRequires:  python2-lit python3-lit python2-rpm-macros python3-sphinx python3-devel
 
 Requires:	libstdc++-devel gcc-c++ emacs-filesystem
-provides:	%{name}-libs
-Obsoletes:	%{name}-libs
-Recommends: compiler-rt = %{version}
-Recommends: libomp = %{version}
 Provides:	clang(major) = %{maj_ver}
+Provides:	%{name}-libs = %{version}-%{release}
+Obsoletes:	%{name}-libs < %{version}-%{release}
+Recommends:     libomp = %{version}
 
 %description
 The Clang project provides a language front-end and tooling infrastructure for\
@@ -255,6 +255,9 @@ false
 %{python2_sitelib}/clang/
 
 %changelog
+* Thu Feb 20 2020 openEuler Buildteam <buildteam@openeuler.org> - 7.0.0-5
+- Add buildrequire compiler-rt
+
 * Tue Dec 17 2019 openEuler Buildteam <buildteam@openeuler.org> - 7.0.0-4
 - Delete redundant info
 
