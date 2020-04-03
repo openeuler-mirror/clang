@@ -7,7 +7,7 @@
 
 Name:		clang
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	5
+Release:	6
 License:	NCSA
 Summary:	An "LLVM native" C/C++/Objective-C compiler
 URL:		http://llvm.org
@@ -110,12 +110,6 @@ pathfix.py -i %{__python3} -pn \
 mv ../%{clang_tools_srcdir} tools/extra
 
 %build
-
-%if 0%{?__isa_bits} == 64
-sed -i 's/\@FEDORA_LLVM_LIB_SUFFIX\@/64/g' test/lit.cfg.py
-%else
-sed -i 's/\@FEDORA_LLVM_LIB_SUFFIX\@//g' test/lit.cfg.py
-%endif
 
 mkdir -p _build
 cd _build
@@ -255,6 +249,9 @@ false
 %{python2_sitelib}/clang/
 
 %changelog
+* Fri Apr 03 2020 zhouyihang <zhouyihang1@huawei.com> - 7.0.0-6
+- Remove useless scriptlet
+
 * Thu Feb 20 2020 openEuler Buildteam <buildteam@openeuler.org> - 7.0.0-5
 - Add buildrequire compiler-rt
 
