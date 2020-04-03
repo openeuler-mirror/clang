@@ -16,7 +16,7 @@ index 5323cfe..5b4184e 100644
  config.test_exec_root = os.path.join(config.clang_obj_root, 'test')
  
 +old_llvm_tools_dir = llvm_config.config.llvm_tools_dir
-+llvm_config.config.llvm_tools_dir = '/usr/lib@FEDORA_LLVM_LIB_SUFFIX@/llvm'
++llvm_config.config.llvm_tools_dir = '/usr/lib64/llvm'
  llvm_config.use_default_substitutions()
 +llvm_config.config.llvm_tools_dir = old_llvm_tools_dir
  
