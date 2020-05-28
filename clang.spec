@@ -7,7 +7,7 @@
 
 Name:		clang
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	6
+Release:	7
 License:	NCSA
 Summary:	An "LLVM native" C/C++/Objective-C compiler
 URL:		http://llvm.org
@@ -22,6 +22,7 @@ Patch4:		0001-gtest-reorg.patch
 Patch5:		0001-Don-t-prefer-python2.7.patch
 Patch6:		0001-Convert-clang-format-diff.py-to-python3-using-2to3.patch
 Patch7:		0001-Convert-scan-view-to-python3-using-2to3.patch
+Patch8:		0001-Fix-uninitialized-value-in-ABIArgInfo.patch
 
 BuildRequires:  cmake gcc-c++ python-sphinx git
 BuildRequires:	llvm-devel = %{version}
@@ -249,6 +250,9 @@ false
 %{python2_sitelib}/clang/
 
 %changelog
+* Thu May 28 2020 leiju <leiju4@huawei.com> - 7.0.0-7
+- Fix uninitialized value in ABIArgInfo
+
 * Fri Apr 03 2020 zhouyihang <zhouyihang1@huawei.com> - 7.0.0-6
 - Remove useless scriptlet
 
