@@ -7,7 +7,7 @@
 
 Name:		clang
 Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	6
+Release:	7
 License:	NCSA
 Summary:	An "LLVM native" C/C++/Objective-C compiler
 URL:		http://llvm.org
@@ -250,6 +250,9 @@ false
 %{python2_sitelib}/clang/
 
 %changelog
+* Thu May 28 2020 leiju <leiju4@huawei.com> - 7.0.0-7
+- Fix uninitialized value in ABIArgInfo
+
 * Fri Apr 03 2020 zhouyihang <zhouyihang1@huawei.com> - 7.0.0-6
 - Remove useless scriptlet
 
