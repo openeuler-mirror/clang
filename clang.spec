@@ -22,6 +22,7 @@ Patch4:		0001-gtest-reorg.patch
 Patch5:		0001-Don-t-prefer-python2.7.patch
 Patch6:		0001-Convert-clang-format-diff.py-to-python3-using-2to3.patch
 Patch7:		0001-Convert-scan-view-to-python3-using-2to3.patch
+Patch8:     0001-Fix-uninitialized-value-in-ABIArgInfo.patch
 
 BuildRequires:  cmake gcc-c++ python-sphinx git
 BuildRequires:	llvm-devel = %{version}
