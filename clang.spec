@@ -154,6 +154,7 @@ rm -vf %{buildroot}%{_datadir}/clang/bash-autocomplete.sh
 
 ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 cp -p %{_libdir}/libclang*so.7 %{buildroot}%{_libdir} 
+cp -p %{_libdir}/libfindAllSymbols.so.7 %{buildroot}%{_libdir}
 
 %check
 # Checking is disabled because we don't pack libLLVMTestingSupport.a, which makes
