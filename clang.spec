@@ -25,7 +25,7 @@ BuildRequires:  llvm-static = %{version}
 BuildRequires:	llvm-googletest = %{version}
 BuildRequires:	libxml2-devel perl-generators ncurses-devel emacs libatomic
 BuildRequires:  python3-lit python3-sphinx python3-devel
-BuildRequires:  clang = 7.0.0
+BuildRequires:  clang
 
 Requires:	libstdc++-devel gcc-c++ emacs-filesystem
 Provides:	clang(major) = %{maj_ver}
