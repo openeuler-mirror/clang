@@ -1,28 +1,22 @@
-%global maj_ver 7
+%global maj_ver 10
 %global min_ver 0
-%global patch_ver 0
-
-%global clang_srcdir cfe-%{version}.src
+%global patch_ver 1
+%global clang_srcdir clang-%{version}.src
 %global clang_tools_srcdir clang-tools-extra-%{version}.src
 
 Name:		clang
-Version:	%{maj_ver}.%{min_ver}.%{patch_ver}
-Release:	7
+Version:	10.0.1
+Release:	0
 License:	NCSA
 Summary:	An "LLVM native" C/C++/Objective-C compiler
 URL:		http://llvm.org
-Source0:	http://releases.llvm.org/%{version}/%{clang_srcdir}.tar.xz
-Source1:	http://llvm.org/releases/%{version}/%{clang_tools_srcdir}.tar.xz
-Source100:	clang-config.h
+Source0:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}/%{clang_srcdir}.tar.xz
+Source1:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}/%{clang_tools_srcdir}.tar.xz
+Source2:	clang-config.h
 
-Patch0:		0001-lit.cfg-Add-hack-so-lit-can-find-not-and-FileCheck.patch
-Patch1:		0001-GCC-compatibility-Ignore-fstack-clash-protection.patch
-Patch2:		0001-Driver-Prefer-vendor-supplied-gcc-toolchain.patch
-Patch4:		0001-gtest-reorg.patch
-Patch5:		0001-Don-t-prefer-python2.7.patch
-Patch6:		0001-Convert-clang-format-diff.py-to-python3-using-2to3.patch
-Patch7:		0001-Convert-scan-view-to-python3-using-2to3.patch
-Patch8:		0001-Fix-uninitialized-value-in-ABIArgInfo.patch
+Patch0000:	0001-lit.cfg-Add-hack-so-lit-can-find-not-and-FileCheck.patch
+Patch0001:	0001-GCC-compatibility-Ignore-fstack-clash-protection.patch
+Patch0002:	0001-gtest-reorg.patch
 
 BuildRequires:  cmake gcc-c++ python-sphinx git
 BuildRequires:	llvm-devel = %{version}
@@ -30,7 +24,8 @@ BuildRequires:  compiler-rt = %{version}
 BuildRequires:  llvm-static = %{version}
 BuildRequires:	llvm-googletest = %{version}
 BuildRequires:	libxml2-devel perl-generators ncurses-devel emacs libatomic
-BuildRequires:  python2-lit python3-lit python2-rpm-macros python3-sphinx python3-devel
+BuildRequires:  python3-lit python3-sphinx python3-devel
+BuildRequires:  clang
 
 Requires:	libstdc++-devel gcc-c++ emacs-filesystem
 Provides:	clang(major) = %{maj_ver}
@@ -83,24 +78,14 @@ A set of extra tools built using Clang's tooling API.
 Summary:	clang-format integration for git
 Requires:	%{name} = %{version}-%{release}
 Requires:	git
-Requires:	python2
 
 %description -n git-clang-format
 clang-format integration for git.
-
-%package -n python2-clang
-Summary:	Python2 bindings for clang
-Requires:	%{name}-libs = %{version}-%{release}
-Requires:	python2
-%description -n python2-clang
-%{summary}.
 
 %prep
 %setup -T -q -b 1 -n %{clang_tools_srcdir}
 pathfix.py -i %{__python3} -pn \
 	clang-tidy/tool/*.py
-pathfix.py -i %{__python2} -pn \
-	include-fixer/find-all-symbols/tool/run-find-all-symbols.py
 
 %autosetup -n %{clang_srcdir} -p1 -Sgit
 pathfix.py -i %{__python3} -pn \
@@ -152,11 +137,8 @@ cd _build
 %install
 %make_install -C _build
 
-mkdir -p %{buildroot}%{python2_sitelib}/clang/
-install -p -m644 bindings/python/clang/* %{buildroot}%{python2_sitelib}/clang/
-
 mv -v %{buildroot}%{_includedir}/clang/Config/config{,-%{__isa_bits}}.h
-install -m 0644 %{SOURCE100} %{buildroot}%{_includedir}/clang/Config/config.h
+install -m 0644 %{SOURCE2} %{buildroot}%{_includedir}/clang/Config/config.h
 
 mkdir -p %{buildroot}%{_emacs_sitestartdir}
 for f in clang-format.el clang-rename.el clang-include-fixer.el; do
@@ -171,15 +153,20 @@ rm -Rvf %{buildroot}%{_pkgdocdir}
 rm -vf %{buildroot}%{_datadir}/clang/bash-autocomplete.sh
 
 ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
+cp -p %{_libdir}/libclang*so.7 %{buildroot}%{_libdir} 
+cp -p %{_libdir}/libfindAllSymbols.so.7 %{buildroot}%{_libdir}
 
 %check
-cd _build
-PATH=%{_libdir}/llvm:$PATH make %{?_smp_mflags} check-clang || \
-%ifarch %{arm}
-:
-%else
-false
-%endif
+# Checking is disabled because we don't pack libLLVMTestingSupport.a, which makes
+# standalone build of clang impossible.
+
+#cd _build
+#PATH=%{_libdir}/llvm:$PATH make %{?_smp_mflags} check-clang || \
+#%ifarch %{arm}
+#:
+#%else
+#false
+#%endif
 
 %files
 %{_bindir}/clang
@@ -190,7 +177,12 @@ false
 %{_bindir}/clang-cl
 %{_bindir}/clang-cpp
 %{_bindir}/clang-format
-%{_bindir}/clang-func-mapping
+%{_bindir}/clang-doc
+%{_bindir}/clang-extdef-mapping
+%{_bindir}/clang-move
+%{_bindir}/clang-offload-wrapper
+%{_bindir}/clang-scan-deps
+%{_bindir}/pp-trace
 %{_bindir}/clang-import-test
 %{_bindir}/clang-offload-bundler
 %{_bindir}/diagtool
@@ -215,7 +207,6 @@ false
 
 %files analyzer
 %{_bindir}/scan-view
-%{_bindir}/scan-build
 %{_bindir}/scan-build
 %{_libexecdir}/ccc-analyzer
 %{_libexecdir}/c++-analyzer
@@ -242,14 +233,16 @@ false
 %{_datadir}/clang/run-clang-tidy.py*
 %{_datadir}/clang/run-find-all-symbols.py*
 %{_datadir}/clang/clang-rename.py*
+%{_datadir}/clang/index.js
+%{_datadir}/clang/clang-doc-default-stylesheet.css
 
 %files -n git-clang-format
 %{_bindir}/git-clang-format
 
-%files -n python2-clang
-%{python2_sitelib}/clang/
-
 %changelog
+* Thu Jul 30 2020 Guoshuai Sun <sunguoshuai> - 10.0.1-0
+- Upgrade to 10.0.1
+
 * Thu May 28 2020 leiju <leiju4@huawei.com> - 7.0.0-7
 - Fix uninitialized value in ABIArgInfo
 
