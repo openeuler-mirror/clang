@@ -6,7 +6,7 @@
 
 Name:		clang
 Version:	10.0.1
-Release:	0
+Release:	1
 License:	NCSA
 Summary:	An "LLVM native" C/C++/Objective-C compiler
 URL:		http://llvm.org
@@ -28,6 +28,7 @@ BuildRequires:  python3-lit python3-sphinx python3-devel
 BuildRequires:  clang
 
 Requires:	libstdc++-devel gcc-c++ emacs-filesystem
+Recommends:     %{name}-help = %{version}-%{release}
 Provides:	clang(major) = %{maj_ver}
 Provides:	%{name}-libs = %{version}-%{release}
 Obsoletes:	%{name}-libs < %{version}-%{release}
@@ -58,7 +59,6 @@ Summary:	A source code analysis framework
 License:	NCSA and MIT
 BuildArch:	noarch
 Requires:	%{name} = %{version}-%{release}
-Requires:	python2
 
 %description analyzer
 The Clang Static Analyzer consists of both a source code analysis
@@ -240,6 +240,9 @@ cp -p %{_libdir}/libfindAllSymbols.so.7 %{buildroot}%{_libdir}
 %{_bindir}/git-clang-format
 
 %changelog
+* Mon Nov 09 2020 huanghaitao <huanghaitao8@huawei.com>  - 10.0.1-1
+- Make help package required by clang and delete python2
+
 * Sat Oct 10 2020 Jeffery.Gao <gaojianxing@huawei.com> - 10.0.1-0
 - Upgrade to 10.0.1
 
