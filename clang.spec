@@ -6,7 +6,7 @@
 
 Name:		clang
 Version:	10.0.1
-Release:	1
+Release:	2
 License:	NCSA
 Summary:	An "LLVM native" C/C++/Objective-C compiler
 URL:		http://llvm.org
@@ -153,8 +153,6 @@ rm -Rvf %{buildroot}%{_pkgdocdir}
 rm -vf %{buildroot}%{_datadir}/clang/bash-autocomplete.sh
 
 ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
-cp -p %{_libdir}/libclang*so.7 %{buildroot}%{_libdir} 
-cp -p %{_libdir}/libfindAllSymbols.so.7 %{buildroot}%{_libdir}
 
 %check
 # Checking is disabled because we don't pack libLLVMTestingSupport.a, which makes
@@ -240,6 +238,9 @@ cp -p %{_libdir}/libfindAllSymbols.so.7 %{buildroot}%{_libdir}
 %{_bindir}/git-clang-format
 
 %changelog
+* Tue Feb 02 2021 sunguoshuai <sunguoshuai@huawei.com> - 10.0.1-2
+- Delete low version dynamic library.
+
 * Mon Nov 09 2020 huanghaitao <huanghaitao8@huawei.com>  - 10.0.1-1
 - Make help package required by clang and delete python2
 
