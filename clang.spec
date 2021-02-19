@@ -6,8 +6,8 @@
 
 Name:		clang
 Version:	10.0.1
-Release:	1
-License:	NCSA
+Release:	2
+License:	GPL-2.0-only and Apache-2.0 and MIT
 Summary:	An "LLVM native" C/C++/Objective-C compiler
 URL:		http://llvm.org
 Source0:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}/%{clang_srcdir}.tar.xz
@@ -58,7 +58,7 @@ Summary:	A source code analysis framework
 License:	NCSA and MIT
 BuildArch:	noarch
 Requires:	%{name} = %{version}-%{release}
-Requires:	python2
+Requires:	python3
 
 %description analyzer
 The Clang Static Analyzer consists of both a source code analysis
@@ -238,7 +238,10 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %{_bindir}/git-clang-format
 
 %changelog
-* Fri Sep 25 2020 zhangjiapeng <zhangjiapeng9@huawei.com> 10.0.1-1
+* Thu Feb 18 2021 zhangjiapeng <zhangjiapeng9@huawei.com> - 10.0.1-2
+- Modify the dependency to python3
+
+* Fri Sep 25 2020 zhangjiapeng <zhangjiapeng9@huawei.com> - 10.0.1-1
 - Delete low version dynamic library
 
 * Thu Jul 30 2020 Guoshuai Sun <sunguoshuai> - 10.0.1-0
