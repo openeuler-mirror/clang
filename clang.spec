@@ -6,7 +6,7 @@
 
 Name:		clang
 Version:	10.0.1
-Release:	2
+Release:	3
 License:	GPL-2.0-only and Apache-2.0 and MIT
 Summary:	An "LLVM native" C/C++/Objective-C compiler
 URL:		http://llvm.org
@@ -25,7 +25,7 @@ BuildRequires:  llvm-static = %{version}
 BuildRequires:	llvm-googletest = %{version}
 BuildRequires:	libxml2-devel perl-generators ncurses-devel emacs libatomic
 BuildRequires:  python3-lit python3-sphinx python3-devel
-BuildRequires:  clang
+
 
 Requires:	libstdc++-devel gcc-c++ emacs-filesystem
 Provides:	clang(major) = %{maj_ver}
@@ -100,13 +100,15 @@ mv ../%{clang_tools_srcdir} tools/extra
 mkdir -p _build
 cd _build
 
-%ifarch %{arm}
+
 %global optflags %(echo %{optflags} | sed 's/-g /-g1 /')
-%endif
+
 
 %cmake .. \
 	-DLLVM_LINK_LLVM_DYLIB:BOOL=ON \
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	-DCMAKE_C_FLAGS_RELWITHDEBINFO="%{optflags}" \
+	-DCMAKE_CXX_FLAGS_RELWITHDEBINFO="%{optflags}" \
 	-DLLVM_CONFIG:FILEPATH=/usr/bin/llvm-config-%{__isa_bits} \
 	-DCLANG_INCLUDE_TESTS:BOOL=ON \
 	-DLLVM_EXTERNAL_LIT=%{_bindir}/lit \
@@ -238,6 +240,9 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %{_bindir}/git-clang-format
 
 %changelog
+* Thu Apr 29 2021 licihua <licihua@huawei.com> - 10.0.1-3
+- Reduce debuginfo verbosity.
+
 * Thu Feb 18 2021 zhangjiapeng <zhangjiapeng9@huawei.com> - 10.0.1-2
 - Modify the dependency to python3
 
