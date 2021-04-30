@@ -6,7 +6,7 @@
 
 Name:		clang
 Version:	10.0.1
-Release:	3
+Release:	4
 License:	NCSA
 Summary:	An "LLVM native" C/C++/Objective-C compiler
 URL:		http://llvm.org
@@ -104,8 +104,8 @@ cd _build
 %cmake .. \
 	-DLLVM_LINK_LLVM_DYLIB:BOOL=ON \
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
-	-DCMAKE_C_FLAGS_RELWITHDEBINFO="%{optflags}" \
-	-DCMAKE_CXX_FLAGS_RELWITHDEBINFO="%{optflags}" \
+	-DCMAKE_C_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
+	-DCMAKE_CXX_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 	-DLLVM_CONFIG:FILEPATH=/usr/bin/llvm-config-%{__isa_bits} \
 	-DCLANG_INCLUDE_TESTS:BOOL=ON \
 	-DLLVM_EXTERNAL_LIT=%{_bindir}/lit \
@@ -237,6 +237,9 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %{_bindir}/git-clang-format
 
 %changelog
+* Fri Apr 30 2021 licihua <licihua@huawei.com> - 10.0.1-4
+- Reduce build time
+
 * Thu Apr 29 2021 licihua <licihua@huawei.com> - 10.0.1-3
 - Reduce debuginfo verbosity.
 
