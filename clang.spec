@@ -6,7 +6,7 @@
 
 Name:		clang
 Version:	10.0.1
-Release:	4
+Release:	5
 License:	GPL-2.0-only and Apache-2.0 and MIT
 Summary:	An "LLVM native" C/C++/Objective-C compiler
 URL:		http://llvm.org
@@ -18,9 +18,9 @@ Patch0000:	0001-lit.cfg-Add-hack-so-lit-can-find-not-and-FileCheck.patch
 Patch0001:	0001-GCC-compatibility-Ignore-fstack-clash-protection.patch
 Patch0002:	0001-gtest-reorg.patch
 
-BuildRequires:  cmake gcc-c++ python-sphinx git
+BuildRequires:  cmake gcc-c++ python-sphinx
 BuildRequires:	llvm-devel = %{version}
-BuildRequires:  compiler-rt = %{version} 
+BuildRequires:  compiler-rt = %{version}
 BuildRequires:  llvm-static = %{version}
 BuildRequires:	llvm-googletest = %{version}
 BuildRequires:	libxml2-devel perl-generators ncurses-devel emacs libatomic
@@ -87,7 +87,7 @@ clang-format integration for git.
 pathfix.py -i %{__python3} -pn \
 	clang-tidy/tool/*.py
 
-%autosetup -n %{clang_srcdir} -p1 -Sgit
+%autosetup -n %{clang_srcdir} -p1
 pathfix.py -i %{__python3} -pn \
 	tools/clang-format/*.py \
 	tools/clang-format/git-clang-format \
@@ -240,6 +240,9 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %{_bindir}/git-clang-format
 
 %changelog
+* Mon Aug 02 2021 chenyanpanHW <chenyanpan@huawei.com> - 10.0.1-5
+- DESC: delete -Sgit from %autosetup, and delete BuildRequires git
+
 * Fri Apr 30 2021 licihua <licihua@huawei.com> - 10.0.1-4
 - Reduce build time.
 
