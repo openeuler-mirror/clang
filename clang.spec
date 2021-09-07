@@ -6,7 +6,7 @@
 
 Name:		clang
 Version:	10.0.1
-Release:	4
+Release:	5
 License:	GPL-2.0-only and Apache-2.0 and MIT
 Summary:	An "LLVM native" C/C++/Objective-C compiler
 URL:		http://llvm.org
@@ -18,7 +18,7 @@ Patch0000:	0001-lit.cfg-Add-hack-so-lit-can-find-not-and-FileCheck.patch
 Patch0001:	0001-GCC-compatibility-Ignore-fstack-clash-protection.patch
 Patch0002:	0001-gtest-reorg.patch
 
-BuildRequires:  cmake gcc-c++ python-sphinx git
+BuildRequires:  cmake gcc-c++ python-sphinx git chrpath
 BuildRequires:	llvm-devel = %{version}
 BuildRequires:  compiler-rt = %{version} 
 BuildRequires:  llvm-static = %{version}
@@ -156,6 +156,35 @@ rm -vf %{buildroot}%{_datadir}/clang/bash-autocomplete.sh
 
 ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 
+chrpath -d  %{buildroot}%{_libdir}/*.so.%{maj_ver}
+chrpath -d  %{buildroot}%{_bindir}/c-index-test
+chrpath -d  %{buildroot}%{_bindir}/clang-10
+chrpath -d  %{buildroot}%{_bindir}/clang-apply-replacements
+chrpath -d  %{buildroot}%{_bindir}/clang-change-namespace
+chrpath -d  %{buildroot}%{_bindir}/clang-check
+chrpath -d  %{buildroot}%{_bindir}/clangd
+chrpath -d  %{buildroot}%{_bindir}/clang-doc
+chrpath -d  %{buildroot}%{_bindir}/clang-extdef-mapping
+chrpath -d  %{buildroot}%{_bindir}/clang-format
+chrpath -d  %{buildroot}%{_bindir}/clang-import-test
+chrpath -d  %{buildroot}%{_bindir}/clang-include-fixer
+chrpath -d  %{buildroot}%{_bindir}/clang-move
+chrpath -d  %{buildroot}%{_bindir}/clang-offload-bundler
+chrpath -d  %{buildroot}%{_bindir}/clang-offload-wrapper
+chrpath -d  %{buildroot}%{_bindir}/clang-query
+chrpath -d  %{buildroot}%{_bindir}/clang-refactor
+chrpath -d  %{buildroot}%{_bindir}/clang-rename
+chrpath -d  %{buildroot}%{_bindir}/clang-reorder-fields
+chrpath -d  %{buildroot}%{_bindir}/clang-scan-deps
+chrpath -d  %{buildroot}%{_bindir}/clang-tidy
+chrpath -d  %{buildroot}%{_bindir}/diagtool
+chrpath -d  %{buildroot}%{_bindir}/find-all-symbols
+chrpath -d  %{buildroot}%{_bindir}/modularize
+chrpath -d  %{buildroot}%{_bindir}/pp-trace
+mkdir -p %{buildroot}/etc/ld.so.conf.d
+echo "%{_bindir}/%{name}-%{maj_ver}" > %{buildroot}/etc/ld.so.conf.d/%{name}-%{_arch}.conf
+echo "%{_libdir}/%{name}-%{maj_ver}" >> %{buildroot}/etc/ld.so.conf.d/%{name}-%{_arch}.conf
+
 %check
 # Checking is disabled because we don't pack libLLVMTestingSupport.a, which makes
 # standalone build of clang impossible.
@@ -167,6 +196,12 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 #%else
 #false
 #%endif
+
+%post
+/sbin/ldconfig
+
+%postun
+/sbin/ldconfig
 
 %files
 %{_bindir}/clang
@@ -193,6 +228,7 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %{_datadir}/clang/clang-format-diff.py*
 %{_libdir}/clang/
 %{_libdir}/*.so.*
+%config(noreplace) /etc/ld.so.conf.d/*
 
 %files devel
 %{_libdir}/*.so
@@ -240,6 +276,9 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %{_bindir}/git-clang-format
 
 %changelog
+* Tue Sep 07 2021 chenchen <chen_aka_jan@163.com> - 10.0.1-5
+- del rpath from some binaries and bin
+
 * Fri Apr 30 2021 licihua <licihua@huawei.com> - 10.0.1-4
 - Reduce build time.
 
