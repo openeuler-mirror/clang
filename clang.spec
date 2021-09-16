@@ -6,7 +6,7 @@
 
 Name:		clang
 Version:	10.0.1
-Release:	5
+Release:	6
 License:	GPL-2.0-only and Apache-2.0 and MIT
 Summary:	An "LLVM native" C/C++/Objective-C compiler
 URL:		http://llvm.org
@@ -24,7 +24,7 @@ BuildRequires:  compiler-rt = %{version}
 BuildRequires:  llvm-static = %{version}
 BuildRequires:	llvm-googletest = %{version}
 BuildRequires:	libxml2-devel perl-generators ncurses-devel emacs libatomic
-BuildRequires:  python3-lit python3-sphinx python3-devel
+BuildRequires:  python3-lit python3-sphinx python3-devel chrpath
 
 
 Requires:	libstdc++-devel gcc-c++ emacs-filesystem
@@ -156,6 +156,17 @@ rm -vf %{buildroot}%{_datadir}/clang/bash-autocomplete.sh
 
 ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 
+
+cd  $RPM_BUILD_ROOT/usr
+file `find -type f`| grep -w ELF | awk -F":" '{print $1}' | for i in `xargs`
+do
+  chrpath -d $i
+done
+cd -
+mkdir -p  $RPM_BUILD_ROOT/etc/ld.so.conf.d
+echo "%{_bindir}/%{name}-%{maj_ver}" > $RPM_BUILD_ROOT/etc/ld.so.conf.d/%{name}-%{_arch}.conf
+echo "%{_libdir}/%{name}-%{maj_ver}" >> $RPM_BUILD_ROOT/etc/ld.so.conf.d/%{name}-%{_arch}.conf
+
 %check
 # Checking is disabled because we don't pack libLLVMTestingSupport.a, which makes
 # standalone build of clang impossible.
@@ -167,6 +178,12 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 #%else
 #false
 #%endif
+
+%post
+/sbin/ldconfig
+
+%postun
+/sbin/ldconfig
 
 %files
 %{_bindir}/clang
@@ -193,6 +210,7 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %{_datadir}/clang/clang-format-diff.py*
 %{_libdir}/clang/
 %{_libdir}/*.so.*
+%config(noreplace) /etc/ld.so.conf.d/*
 
 %files devel
 %{_libdir}/*.so
@@ -240,6 +258,9 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %{_bindir}/git-clang-format
 
 %changelog
+* Thu Sep 16 2021 chenchen <chen_aka_jan@163.com> - 10.0.1-6
+- del rpath from some binaries and bin
+
 * Mon Aug 02 2021 chenyanpanHW <chenyanpan@huawei.com> - 10.0.1-5
 - DESC: delete -Sgit from %autosetup, and delete BuildRequires git
 
