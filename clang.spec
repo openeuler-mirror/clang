@@ -1,12 +1,12 @@
-%global maj_ver 10
+%global maj_ver 12
 %global min_ver 0
 %global patch_ver 1
 %global clang_srcdir clang-%{version}.src
 %global clang_tools_srcdir clang-tools-extra-%{version}.src
 
 Name:		clang
-Version:	10.0.1
-Release:	5
+Version:	12.0.1
+Release:	1
 License:	GPL-2.0-only and Apache-2.0 and MIT
 Summary:	An "LLVM native" C/C++/Objective-C compiler
 URL:		http://llvm.org
@@ -14,13 +14,8 @@ Source0:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{versio
 Source1:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}/%{clang_tools_srcdir}.tar.xz
 Source2:	clang-config.h
 
-Patch0000:	0001-lit.cfg-Add-hack-so-lit-can-find-not-and-FileCheck.patch
-Patch0001:	0001-GCC-compatibility-Ignore-fstack-clash-protection.patch
-Patch0002:	0001-gtest-reorg.patch
-
-BuildRequires:  cmake gcc-c++ python-sphinx git chrpath
+BuildRequires:  cmake gcc-c++ python-sphinx git
 BuildRequires:	llvm-devel = %{version}
-BuildRequires:  compiler-rt = %{version} 
 BuildRequires:  llvm-static = %{version}
 BuildRequires:	llvm-googletest = %{version}
 BuildRequires:	libxml2-devel perl-generators ncurses-devel emacs libatomic
@@ -28,10 +23,15 @@ BuildRequires:  python3-lit python3-sphinx python3-devel
 
 
 Requires:	libstdc++-devel gcc-c++ emacs-filesystem
+Requires:	%{name}-resource-filesystem = %{version}
 Provides:	clang(major) = %{maj_ver}
 Provides:	%{name}-libs = %{version}-%{release}
 Obsoletes:	%{name}-libs < %{version}-%{release}
 Recommends:     libomp = %{version}
+Recommends:     compiler-rt = %{version}
+
+Conflicts:      compiler-rt < %{version}
+Conflicts:      compiler-rt > %{version}
 
 %description
 The Clang project provides a language front-end and tooling infrastructure for\
@@ -46,6 +46,13 @@ Requires:	%{name}-tools-extra = %{version}-%{release}
 
 %description devel
 Development header files for clang.
+
+%package resource-filesystem
+Summary: Filesystem package that owns the clang resource directory
+Provides: %{name}-resource-filesystem(major) = %{maj_ver}
+
+%description resource-filesystem
+This package owns the clang resouce directory: $libdir/clang/$version/
 
 %package        help
 Summary:        Help manual for %{name}
@@ -107,6 +114,7 @@ cd _build
 %cmake .. \
 	-DLLVM_LINK_LLVM_DYLIB:BOOL=ON \
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	-DCMAKE_INSTALL_RPATH:BOOL=";" \
 	-DCMAKE_C_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 	-DCMAKE_CXX_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 	-DLLVM_CONFIG:FILEPATH=/usr/bin/llvm-config-%{__isa_bits} \
@@ -154,36 +162,14 @@ rm -Rvf %{buildroot}%{_pkgdocdir}
 
 rm -vf %{buildroot}%{_datadir}/clang/bash-autocomplete.sh
 
-ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
+# Create sub-directories in the clang resource directory that will be
+# populated by other packages
+mkdir -p %{buildroot}%{_libdir}/clang/%{version}/{include,lib,share}/
 
-chrpath -d  %{buildroot}%{_libdir}/*.so.%{maj_ver}
-chrpath -d  %{buildroot}%{_bindir}/c-index-test
-chrpath -d  %{buildroot}%{_bindir}/clang-10
-chrpath -d  %{buildroot}%{_bindir}/clang-apply-replacements
-chrpath -d  %{buildroot}%{_bindir}/clang-change-namespace
-chrpath -d  %{buildroot}%{_bindir}/clang-check
-chrpath -d  %{buildroot}%{_bindir}/clangd
-chrpath -d  %{buildroot}%{_bindir}/clang-doc
-chrpath -d  %{buildroot}%{_bindir}/clang-extdef-mapping
-chrpath -d  %{buildroot}%{_bindir}/clang-format
-chrpath -d  %{buildroot}%{_bindir}/clang-import-test
-chrpath -d  %{buildroot}%{_bindir}/clang-include-fixer
-chrpath -d  %{buildroot}%{_bindir}/clang-move
-chrpath -d  %{buildroot}%{_bindir}/clang-offload-bundler
-chrpath -d  %{buildroot}%{_bindir}/clang-offload-wrapper
-chrpath -d  %{buildroot}%{_bindir}/clang-query
-chrpath -d  %{buildroot}%{_bindir}/clang-refactor
-chrpath -d  %{buildroot}%{_bindir}/clang-rename
-chrpath -d  %{buildroot}%{_bindir}/clang-reorder-fields
-chrpath -d  %{buildroot}%{_bindir}/clang-scan-deps
-chrpath -d  %{buildroot}%{_bindir}/clang-tidy
-chrpath -d  %{buildroot}%{_bindir}/diagtool
-chrpath -d  %{buildroot}%{_bindir}/find-all-symbols
-chrpath -d  %{buildroot}%{_bindir}/modularize
-chrpath -d  %{buildroot}%{_bindir}/pp-trace
-mkdir -p %{buildroot}/etc/ld.so.conf.d
-echo "%{_bindir}/%{name}-%{maj_ver}" > %{buildroot}/etc/ld.so.conf.d/%{name}-%{_arch}.conf
-echo "%{_libdir}/%{name}-%{maj_ver}" >> %{buildroot}/etc/ld.so.conf.d/%{name}-%{_arch}.conf
+# Remove clang-tidy headers.  
+rm -Rvf %{buildroot}%{_includedir}/clang-tidy/
+
+ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 
 %check
 # Checking is disabled because we don't pack libLLVMTestingSupport.a, which makes
@@ -218,7 +204,6 @@ echo "%{_libdir}/%{name}-%{maj_ver}" >> %{buildroot}/etc/ld.so.conf.d/%{name}-%{
 %{_bindir}/clang-offload-wrapper
 %{_bindir}/clang-scan-deps
 %{_bindir}/pp-trace
-%{_bindir}/clang-import-test
 %{_bindir}/clang-offload-bundler
 %{_bindir}/diagtool
 %{_bindir}/hmaptool
@@ -228,7 +213,6 @@ echo "%{_libdir}/%{name}-%{maj_ver}" >> %{buildroot}/etc/ld.so.conf.d/%{name}-%{
 %{_datadir}/clang/clang-format-diff.py*
 %{_libdir}/clang/
 %{_libdir}/*.so.*
-%config(noreplace) /etc/ld.so.conf.d/*
 
 %files devel
 %{_libdir}/*.so
@@ -236,6 +220,12 @@ echo "%{_libdir}/%{name}-%{maj_ver}" >> %{buildroot}/etc/ld.so.conf.d/%{name}-%{
 %{_includedir}/clang-c/
 %{_libdir}/cmake/*
 %dir %{_datadir}/clang/
+
+%files resource-filesystem
+%dir %{_libdir}/clang/%{version}/
+%dir %{_libdir}/clang/%{version}/include/
+%dir %{_libdir}/clang/%{version}/lib/
+%dir %{_libdir}/clang/%{version}/share/
 
 %files help
 %{_mandir}/man1/clang.1.gz
@@ -276,6 +266,10 @@ echo "%{_libdir}/%{name}-%{maj_ver}" >> %{buildroot}/etc/ld.so.conf.d/%{name}-%{
 %{_bindir}/git-clang-format
 
 %changelog
+* Wed Dec 29 2021 panxiaohe <panxiaohe@huawei.com> - 12.0.1-1
+- update to 12.0.1
+- add clang-resource-filesystem sub-package
+
 * Tue Sep 07 2021 chenchen <chen_aka_jan@163.com> - 10.0.1-5
 - del rpath from some binaries and bin
 
