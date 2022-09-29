@@ -6,13 +6,15 @@
 
 Name:		clang
 Version:	12.0.1
-Release:	1
+Release:	2
 License:	GPL-2.0-only and Apache-2.0 and MIT
 Summary:	An "LLVM native" C/C++/Objective-C compiler
 URL:		http://llvm.org
 Source0:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}/%{clang_srcdir}.tar.xz
 Source1:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}/%{clang_tools_srcdir}.tar.xz
 Source2:	clang-config.h
+
+Patch1:   0001-Add-LoongArch-support.patch
 
 BuildRequires:  cmake gcc-c++ python-sphinx git
 BuildRequires:	llvm-devel = %{version}
@@ -266,6 +268,9 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %{_bindir}/git-clang-format
 
 %changelog
+* Fri Sep 23 2022 wanglei <wanglei@loongson.cn> - 12.0.1-2
+- Add LoongArch support
+
 * Wed Dec 29 2021 panxiaohe <panxiaohe@huawei.com> - 12.0.1-1
 - update to 12.0.1
 - add clang-resource-filesystem sub-package
