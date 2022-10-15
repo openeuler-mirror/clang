@@ -6,7 +6,7 @@
 
 Name:		clang
 Version:	12.0.1
-Release:	1
+Release:	3
 License:	GPL-2.0-only and Apache-2.0 and MIT
 Summary:	An "LLVM native" C/C++/Objective-C compiler
 URL:		http://llvm.org
@@ -32,6 +32,9 @@ Recommends:     compiler-rt = %{version}
 
 Conflicts:      compiler-rt < %{version}
 Conflicts:      compiler-rt > %{version}
+
+Patch0:		support-ignored_and_replaced_opts.patch
+Patch1:		support-print-c-function-prototype.patch
 
 %description
 The Clang project provides a language front-end and tooling infrastructure for\
@@ -94,7 +97,7 @@ clang-format integration for git.
 pathfix.py -i %{__python3} -pn \
 	clang-tidy/tool/*.py
 
-%autosetup -n %{clang_srcdir} -p1 -Sgit
+%autosetup -n %{clang_srcdir} -p1
 pathfix.py -i %{__python3} -pn \
 	tools/clang-format/*.py \
 	tools/clang-format/git-clang-format \
@@ -266,6 +269,12 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %{_bindir}/git-clang-format
 
 %changelog
+* Thu Sep 22 2022 linguoxiong <cokelin@hnu.edu.cn> - 12.0.1-3
+- Implement the "-aux-info" option to print function prototype
+
+* Tue Aug 23 2022 linguoxiong <cokelin@hnu.edu.cn> - 12.0.1-2
+- Implement some options to ignore and replace
+
 * Wed Dec 29 2021 panxiaohe <panxiaohe@huawei.com> - 12.0.1-1
 - update to 12.0.1
 - add clang-resource-filesystem sub-package
