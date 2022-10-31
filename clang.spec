@@ -6,7 +6,7 @@
 
 Name:		clang
 Version:	12.0.1
-Release:	1
+Release:	2
 License:	GPL-2.0-only and Apache-2.0 and MIT
 Summary:	An "LLVM native" C/C++/Objective-C compiler
 URL:		http://llvm.org
@@ -266,6 +266,9 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %{_bindir}/git-clang-format
 
 %changelog
+* Thu Oct 27 2022 dongyuzhen <dongyuzhen@h-partners.com> - 12.0.1-2
+- Rebuild for next release
+
 * Wed Dec 29 2021 panxiaohe <panxiaohe@huawei.com> - 12.0.1-1
 - update to 12.0.1
 - add clang-resource-filesystem sub-package
