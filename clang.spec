@@ -1,12 +1,12 @@
-%global maj_ver 12
+%global maj_ver 13
 %global min_ver 0
 %global patch_ver 1
 %global clang_srcdir clang-%{version}.src
 %global clang_tools_srcdir clang-tools-extra-%{version}.src
 
 Name:		clang
-Version:	12.0.1
-Release:	3
+Version:	13.0.1
+Release:	1
 License:	GPL-2.0-only and Apache-2.0 and MIT
 Summary:	An "LLVM native" C/C++/Objective-C compiler
 URL:		http://llvm.org
@@ -33,8 +33,10 @@ Recommends:     compiler-rt = %{version}
 Conflicts:      compiler-rt < %{version}
 Conflicts:      compiler-rt > %{version}
 
+%ifnarch riscv64
 Patch0:		support-ignored_and_replaced_opts.patch
 Patch1:		support-print-c-function-prototype.patch
+%endif
 
 %description
 The Clang project provides a language front-end and tooling infrastructure for\
@@ -102,7 +104,9 @@ pathfix.py -i %{__python3} -pn \
 	tools/clang-format/*.py \
 	tools/clang-format/git-clang-format \
 	utils/hmaptool/hmaptool \
-	tools/scan-view/bin/scan-view
+	tools/scan-view/bin/scan-view \
+	tools/scan-build-py/bin/* \
+	tools/scan-build-py/libexec/*
 mv ../%{clang_tools_srcdir} tools/extra
 
 %build
@@ -113,8 +117,12 @@ cd _build
 
 %global optflags %(echo %{optflags} | sed 's/-g /-g1 /')
 
+%ifarch riscv64
+LDFLAGS+="-latomic"
+%endif
 
 %cmake .. \
+	-DLLVM_PARALLEL_LINK_JOBS=1 \
 	-DLLVM_LINK_LLVM_DYLIB:BOOL=ON \
 	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
 	-DCMAKE_INSTALL_RPATH:BOOL=";" \
@@ -149,6 +157,12 @@ cd _build
 
 %install
 %make_install -C _build
+
+# install scanbuild-py to python sitelib.
+mkdir -p %{buildroot}%{python3_sitelib}
+mv %{buildroot}%{_prefix}/lib/{libear,libscanbuild} %{buildroot}%{python3_sitelib}
+%py_byte_compile %{__python3} %{buildroot}%{python3_sitelib}/libear
+%py_byte_compile %{__python3} %{buildroot}%{python3_sitelib}/libscanbuild
 
 mv -v %{buildroot}%{_includedir}/clang/Config/config{,-%{__isa_bits}}.h
 install -m 0644 %{SOURCE2} %{buildroot}%{_includedir}/clang/Config/config.h
@@ -237,11 +251,20 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %files analyzer
 %{_bindir}/scan-view
 %{_bindir}/scan-build
+%{_bindir}/analyze-build
+%{_bindir}/intercept-build
+%{_bindir}/scan-build-py
 %{_libexecdir}/ccc-analyzer
 %{_libexecdir}/c++-analyzer
+%{_libexecdir}/analyze-c++
+%{_libexecdir}/analyze-cc
+%{_libexecdir}/intercept-c++
+%{_libexecdir}/intercept-cc
 %{_datadir}/scan-view/
 %{_datadir}/scan-build/
 %{_mandir}/man1/scan-build.1.*
+%{python3_sitelib}/libear
+%{python3_sitelib}/libscanbuild
 
 %files tools-extra
 %{_bindir}/clangd
@@ -252,6 +275,7 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %{_bindir}/clang-refactor
 %{_bindir}/clang-reorder-fields
 %{_bindir}/clang-rename
+%{_bindir}/clang-repl
 %{_bindir}/clang-tidy
 %{_bindir}/find-all-symbols
 %{_bindir}/modularize
@@ -259,7 +283,7 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %{_emacs_sitestartdir}/clang-include-fixer.el
 %{_datadir}/clang/clang-include-fixer.py*
 %{_datadir}/clang/clang-tidy-diff.py*
-%{_datadir}/clang/run-clang-tidy.py*
+%{_bindir}/run-clang-tidy
 %{_datadir}/clang/run-find-all-symbols.py*
 %{_datadir}/clang/clang-rename.py*
 %{_datadir}/clang/index.js
@@ -269,6 +293,10 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %{_bindir}/git-clang-format
 
 %changelog
+* Tue Nov 29 2022 jchzhou <jchzhou@outlook.com> - 13.0.1-1
+- Update to 13.0.1
+- With temp fix of riscv64 libatomic ld flag from @wangyangdahai
+
 * Thu Sep 22 2022 linguoxiong <cokelin@hnu.edu.cn> - 12.0.1-3
 - Implement the "-aux-info" option to print function prototype
 
