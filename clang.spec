@@ -1,11 +1,13 @@
-%global maj_ver 14
+# %%global toolchain clang
+
+%global maj_ver 15
 %global min_ver 0
-%global patch_ver 5
+%global patch_ver 7
 %global clang_srcdir clang-%{version}.src
 %global clang_tools_srcdir clang-tools-extra-%{version}.src
 
 Name:		clang
-Version:	14.0.5
+Version:	15.0.7
 Release:	1
 License:	GPL-2.0-only and Apache-2.0 and MIT
 Summary:	An "LLVM native" C/C++/Objective-C compiler
@@ -14,13 +16,13 @@ Source0:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{versio
 Source1:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}/%{clang_tools_srcdir}.tar.xz
 Source2:	clang-config.h
 
+# Note: Can be dropped in LLVM 16: https://reviews.llvm.org/D133316
+Patch1:		0001-Mark-fopenmp-implicit-rpath-as-NoArgumentUnused.patch
 # Patches for clang-tools-extra
 # See https://reviews.llvm.org/D120301
-Patch201:	llvm-hello.patch
-# See https://github.com/llvm/llvm-project/issues/54116
-Patch202:	remove-test.patch
+Patch201:	0001-clang-tools-extra-Make-test-dependency-on-LLVMHello-.patch
 
-BuildRequires:  cmake ninja-build gcc-c++ python-sphinx git
+BuildRequires:	cmake ninja-build gcc-g++ python-sphinx git
 BuildRequires:	llvm-devel = %{version}
 BuildRequires:  llvm-static = %{version}
 BuildRequires:	llvm-googletest = %{version}
@@ -104,13 +106,8 @@ clang-format integration for git.
 %setup -T -q -b 1 -n %{clang_tools_srcdir}
 %autopatch -m200 -p2
 
-# This test is broken upstream. It is a clang-tidy unittest
-# that includes a file from clang, breaking standalone builds.
-# https://github.com/llvm/llvm-project/issues/54116
-rm unittests/clang-tidy/ReadabilityModuleTest.cpp
-
 # failing test case
-rm test/clang-tidy/checkers/altera-struct-pack-align.cpp
+rm test/clang-tidy/checkers/altera/struct-pack-align.cpp
 
 pathfix.py -i %{__python3} -pn \
 	clang-tidy/tool/*.py \
@@ -157,6 +154,7 @@ LDFLAGS+=" -latomic"
 	-DCMAKE_CXX_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 	-DLLVM_CONFIG:FILEPATH=/usr/bin/llvm-config-%{__isa_bits} \
 	-DCLANG_INCLUDE_TESTS:BOOL=ON \
+	-DLLVM_BUILD_UTILS:BOOL=ON \
 	-DLLVM_EXTERNAL_LIT=%{_bindir}/lit \
 	-DLLVM_MAIN_SRC_DIR=%{_datadir}/llvm/src \
 %if 0%{?__isa_bits} == 64
@@ -252,6 +250,7 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %{_bindir}/clang-scan-deps
 %{_bindir}/pp-trace
 %{_bindir}/clang-offload-bundler
+%{_bindir}/clang-offload-packager
 %{_bindir}/diagtool
 %{_bindir}/hmaptool
 %{_bindir}/c-index-test
@@ -266,6 +265,7 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %{_includedir}/clang/
 %{_includedir}/clang-c/
 %{_libdir}/cmake/*
+# %{_bindir}/clang-tblgen
 %dir %{_datadir}/clang/
 
 %files resource-filesystem
@@ -304,6 +304,7 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %{_bindir}/clang-include-fixer
 %{_bindir}/clang-linker-wrapper
 %{_bindir}/clang-nvlink-wrapper
+%{_bindir}/clang-pseudo
 %{_bindir}/clang-query
 %{_bindir}/clang-refactor
 %{_bindir}/clang-reorder-fields
@@ -326,6 +327,9 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %{_bindir}/git-clang-format
 
 %changelog
+* Thu Jan 12 2023 jchzhou <zhoujiacheng@iscas.ac.cn> - 15.0.7-1
+- Update to 15.0.7
+
 * Fri Jul 15 2022 jchzhou <zhoujiacheng@iscas.ac.cn> - 14.0.5-1
 - Update to 14.0.5
 
