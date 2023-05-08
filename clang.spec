@@ -42,8 +42,8 @@ Conflicts:      compiler-rt < %{version}
 Conflicts:      compiler-rt > %{version}
 
 %ifnarch riscv64
-Patch0:		support-ignored_and_replaced_opts.patch
-Patch1:		support-print-c-function-prototype.patch
+Patch2:		support-ignored_and_replaced_opts.patch
+Patch3:		support-print-c-function-prototype.patch
 %endif
 
 %description
@@ -327,6 +327,9 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 %{_bindir}/git-clang-format
 
 %changelog
+* Fri Mar 24 2023 jchzhou <zhoujiacheng@iscas.ac.cn> - 15.0.7-2
+- Fix patch number conflict
+
 * Thu Jan 12 2023 jchzhou <zhoujiacheng@iscas.ac.cn> - 15.0.7-1
 - Update to 15.0.7
 
