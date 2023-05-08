@@ -1,23 +1,43 @@
 %global maj_ver 12
 %global min_ver 0
 %global patch_ver 1
+
+%global clang_version %{maj_ver}.%{min_ver}.%{patch_ver}
+%global pkg_name clang%{maj_ver}
+%global bin_suffix -%{maj_ver}
+%global install_prefix %{_libdir}/llvm%{maj_ver}
+%global install_bindir %{install_prefix}/bin
+%global install_includedir %{install_prefix}/include
+%global install_libdir %{install_prefix}/lib
+%global install_libexecdir %{install_prefix}/libexec
+%global install_sharedir %{install_prefix}/share
+%global install_docdir %{install_sharedir}/doc
+
+%global pkg_bindir %{install_bindir}
+%global pkg_includedir %{install_includedir}
+%global pkg_libdir %{install_libdir}
+%global pkg_libexecdir %{install_libexecdir}
+%global pkg_sharedir %{install_sharedir}
+%global pkg_docdir %{install_sharedir}/doc
+
 %global clang_srcdir clang-%{version}.src
 %global clang_tools_srcdir clang-tools-extra-%{version}.src
 
-Name:		clang
-Version:	12.0.1
-Release:	3
+Name:		%pkg_name
+Version:	%{clang_version}
+Release:	4
 License:	GPL-2.0-only and Apache-2.0 and MIT
 Summary:	An "LLVM native" C/C++/Objective-C compiler
 URL:		http://llvm.org
-Source0:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}/%{clang_srcdir}.tar.xz
-Source1:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{version}/%{clang_tools_srcdir}.tar.xz
+Source0:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{clang_version}/%{clang_srcdir}.tar.xz
+Source1:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{clang_version}/%{clang_tools_srcdir}.tar.xz
 Source2:	clang-config.h
 
 BuildRequires:  cmake gcc-c++ python-sphinx git
-BuildRequires:	llvm-devel = %{version}
-BuildRequires:  llvm-static = %{version}
-BuildRequires:	llvm-googletest = %{version}
+BuildRequires:	llvm%{maj_ver}-devel = %{version}
+BuildRequires:	llvm%{maj_ver}-static = %{version}
+BuildRequires:	llvm%{maj_ver}-test = %{version}
+BuildRequires:	llvm%{maj_ver}-googletest = %{version}
 BuildRequires:	libxml2-devel perl-generators ncurses-devel emacs libatomic
 BuildRequires:  python3-lit python3-sphinx python3-devel
 
@@ -41,6 +61,17 @@ The Clang project provides a language front-end and tooling infrastructure for\
 languages in the C language family (C, C++, Objective C/C++, OpenCL, CUDA, and\
 RenderScript) for the LLVM project. Both a GCC-compatible compiler driver (clang)\
 and an MSVC-compatible compiler driver (clang-cl.exe) are provided.\
+
+%package libs
+Summary: Runtime library for clang
+Requires: %{name}-resource-filesystem%{?_isa} = %{version}
+Recommends: compiler-rt%{?_isa} = %{version}
+Recommends: libatomic%{?_isa}
+Recommends: libomp-devel%{_isa} = %{version}
+Recommends: libomp%{_isa} = %{version}
+
+%description libs
+Runtime library for clang.
 
 %package devel
 Summary:	Development header files for clang.
@@ -78,7 +109,7 @@ intended to run in tandem with a build of a project or code base.
 
 %package tools-extra
 Summary:	Extra tools for clang
-Requires:	%{name}-libs = %{version}-%{release}
+Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 Requires:	emacs-filesystem
 
 %description tools-extra
@@ -120,16 +151,10 @@ cd _build
 	-DCMAKE_INSTALL_RPATH:BOOL=";" \
 	-DCMAKE_C_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
 	-DCMAKE_CXX_FLAGS_RELWITHDEBINFO="%{optflags} -DNDEBUG" \
-	-DLLVM_CONFIG:FILEPATH=/usr/bin/llvm-config-%{__isa_bits} \
+	-DLLVM_CONFIG:FILEPATH=%{pkg_bindir}/llvm-config-%{maj_ver}-%{__isa_bits} \
 	-DCLANG_INCLUDE_TESTS:BOOL=ON \
 	-DLLVM_EXTERNAL_LIT=%{_bindir}/lit \
-	-DLLVM_MAIN_SRC_DIR=%{_datadir}/llvm/src \
-%if 0%{?__isa_bits} == 64
-        -DLLVM_LIBDIR_SUFFIX=64 \
-%else
-        -DLLVM_LIBDIR_SUFFIX= \
-%endif
-	\
+	-DLLVM_MAIN_SRC_DIR=%{_libdir}/llvm%{maj_ver}/src \
 	-DCLANG_ENABLE_ARCMT:BOOL=ON \
 	-DCLANG_ENABLE_STATIC_ANALYZER:BOOL=ON \
 	-DCLANG_INCLUDE_DOCS:BOOL=ON \
@@ -140,9 +165,9 @@ cd _build
 	-DLLVM_BUILD_DOCS=ON \
 	-DLLVM_ENABLE_SPHINX=ON \
 	-DSPHINX_WARNINGS_AS_ERRORS=OFF \
-	\
+	-DCMAKE_INSTALL_PREFIX=%{install_prefix} \
 	-DCLANG_BUILD_EXAMPLES:BOOL=OFF \
-	-DCLANG_REPOSITORY_STRING="%{_vendor} %{version}-%{release}" \
+	-DCLANG_REPOSITORY_STRING="%{?distro} %{version}-%{release}" \
 	-DLIB_SUFFIX=
 
 %make_build
@@ -150,29 +175,43 @@ cd _build
 %install
 %make_install -C _build
 
-mv -v %{buildroot}%{_includedir}/clang/Config/config{,-%{__isa_bits}}.h
-install -m 0644 %{SOURCE2} %{buildroot}%{_includedir}/clang/Config/config.h
+mkdir -p %{buildroot}%{_includedir}/clang/Config/
+# install -m 0644 %{SOURCE2} %{buildroot}%{_includedir}/clang/Config/config.h
 
 mkdir -p %{buildroot}%{_emacs_sitestartdir}
 for f in clang-format.el clang-rename.el clang-include-fixer.el; do
-mv %{buildroot}{%{_datadir}/clang,%{_emacs_sitestartdir}}/$f
+mv %{buildroot}{%{install_sharedir}/clang,%{_emacs_sitestartdir}}/$f
 done
 
-rm -vf %{buildroot}%{_datadir}/clang/clang-format-bbedit.applescript
-rm -vf %{buildroot}%{_datadir}/clang/clang-format-sublime.py*
+rm -vf %{buildroot}%{install_sharedir}/clang/clang-format-bbedit.applescript
+rm -vf %{buildroot}%{install_sharedir}/clang/clang-format-sublime.py*
+rm -Rvf %{buildroot}%{install_docdir}/clang/html
 
 rm -Rvf %{buildroot}%{_pkgdocdir}
 
-rm -vf %{buildroot}%{_datadir}/clang/bash-autocomplete.sh
+rm -vf %{buildroot}%{install_sharedir}/clang/bash-autocomplete.sh
+
+mkdir -p %{buildroot}%{_bindir}
+for f in %{buildroot}/%{install_bindir}/*; do
+  filename=`basename $f`
+  if [ $filename != "clang%{bin_suffix}" ]; then
+      ln -s ../../%{install_bindir}/$filename %{buildroot}%{_bindir}/$filename%{bin_suffix}
+  fi
+done
+
+# Create Manpage symlinks
+mkdir -p %{buildroot}%{_mandir}/man1
+for f in %{buildroot}%{install_prefix}/share/man/man1/*; do
+  filename=`basename $f | cut -f 1 -d '.'`
+  mv $f %{buildroot}%{_mandir}/man1/$filename%{bin_suffix}.1
+done
 
 # Create sub-directories in the clang resource directory that will be
 # populated by other packages
-mkdir -p %{buildroot}%{_libdir}/clang/%{version}/{include,lib,share}/
+mkdir -p %{buildroot}%{pkg_libdir}/clang/%{version}/{include,lib,share}/
 
 # Remove clang-tidy headers.  
-rm -Rvf %{buildroot}%{_includedir}/clang-tidy/
-
-ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
+rm -Rvf %{buildroot}%{install_includedir}/clang-tidy/
 
 %check
 # Checking is disabled because we don't pack libLLVMTestingSupport.a, which makes
@@ -193,82 +232,85 @@ ln -s clang++ %{buildroot}%{_bindir}/clang++-%{maj_ver}
 /sbin/ldconfig
 
 %files
-%{_bindir}/clang
-%{_bindir}/clang++
 %{_bindir}/clang-%{maj_ver}
 %{_bindir}/clang++-%{maj_ver}
-%{_bindir}/clang-check
-%{_bindir}/clang-cl
-%{_bindir}/clang-cpp
-%{_bindir}/clang-format
-%{_bindir}/clang-doc
-%{_bindir}/clang-extdef-mapping
-%{_bindir}/clang-move
-%{_bindir}/clang-offload-wrapper
-%{_bindir}/clang-scan-deps
-%{_bindir}/pp-trace
-%{_bindir}/clang-offload-bundler
-%{_bindir}/diagtool
-%{_bindir}/hmaptool
-%{_bindir}/c-index-test
+%{_bindir}/clang-check%{bin_suffix}
+%{_bindir}/clang-cl-%{maj_ver}
+%{_bindir}/clang-cpp-%{maj_ver}
+%{_bindir}/clang-format%{bin_suffix}
+%{_bindir}/clang-doc%{bin_suffix}
+%{_bindir}/clang-extdef-mapping%{bin_suffix}
+%{_bindir}/clang-move%{bin_suffix}
+%{_bindir}/clang-offload-wrapper%{bin_suffix}
+%{_bindir}/clang-scan-deps%{bin_suffix}
+%{_bindir}/pp-trace%{bin_suffix}
+%{_bindir}/clang-offload-bundler%{bin_suffix}
+%{_bindir}/diagtool%{bin_suffix}
+%{_bindir}/hmaptool%{bin_suffix}
+%{_bindir}/c-index-test%{bin_suffix}
 %{_emacs_sitestartdir}/clang-format.el
-%{_datadir}/clang/clang-format.py*
-%{_datadir}/clang/clang-format-diff.py*
-%{_libdir}/clang/
-%{_libdir}/*.so.*
+%{pkg_sharedir}/clang/clang-format.py*
+%{pkg_sharedir}/clang/clang-format-diff.py*
+%{pkg_bindir}
+
+%files libs
+%{pkg_libdir}/*.so.*
+%{pkg_libdir}/clang/%{version}
 
 %files devel
-%{_libdir}/*.so
-%{_includedir}/clang/
-%{_includedir}/clang-c/
-%{_libdir}/cmake/*
-%dir %{_datadir}/clang/
+%{pkg_libdir}/*.so
+%{pkg_includedir}/clang/
+%{pkg_includedir}/clang-c/
+%{pkg_libdir}/cmake/*
+%dir %{pkg_sharedir}/clang/
 
 %files resource-filesystem
-%dir %{_libdir}/clang/%{version}/
-%dir %{_libdir}/clang/%{version}/include/
-%dir %{_libdir}/clang/%{version}/lib/
-%dir %{_libdir}/clang/%{version}/share/
+%dir %{pkg_libdir}/clang/%{version}/
+%dir %{pkg_libdir}/clang/%{version}/include/
+%dir %{pkg_libdir}/clang/%{version}/lib/
+%dir %{pkg_libdir}/clang/%{version}/share/
 
 %files help
-%{_mandir}/man1/clang.1.gz
-%{_mandir}/man1/diagtool.1.gz
+%{_mandir}/man1/*
 
 %files analyzer
-%{_bindir}/scan-view
-%{_bindir}/scan-build
-%{_libexecdir}/ccc-analyzer
-%{_libexecdir}/c++-analyzer
-%{_datadir}/scan-view/
-%{_datadir}/scan-build/
-%{_mandir}/man1/scan-build.1.*
+%{_bindir}/scan-view%{bin_suffix}
+%{_bindir}/scan-build%{bin_suffix}
+%{pkg_libexecdir}/ccc-analyzer
+%{pkg_libexecdir}/c++-analyzer
+%{pkg_sharedir}/scan-view
+%{pkg_sharedir}/scan-build
+%{_mandir}/man1/*
 
 %files tools-extra
-%{_bindir}/clangd
-%{_bindir}/clang-apply-replacements
-%{_bindir}/clang-change-namespace
-%{_bindir}/clang-include-fixer
-%{_bindir}/clang-query
-%{_bindir}/clang-refactor
-%{_bindir}/clang-reorder-fields
-%{_bindir}/clang-rename
-%{_bindir}/clang-tidy
-%{_bindir}/find-all-symbols
-%{_bindir}/modularize
+%{_bindir}/clangd%{bin_suffix}
+%{_bindir}/clang-apply-replacements%{bin_suffix}
+%{_bindir}/clang-change-namespace%{bin_suffix}
+%{_bindir}/clang-include-fixer%{bin_suffix}
+%{_bindir}/clang-query%{bin_suffix}
+%{_bindir}/clang-refactor%{bin_suffix}
+%{_bindir}/clang-reorder-fields%{bin_suffix}
+%{_bindir}/clang-rename%{bin_suffix}
+%{_bindir}/clang-tidy%{bin_suffix}
+%{_bindir}/find-all-symbols%{bin_suffix}
+%{_bindir}/modularize%{bin_suffix}
 %{_emacs_sitestartdir}/clang-rename.el
 %{_emacs_sitestartdir}/clang-include-fixer.el
-%{_datadir}/clang/clang-include-fixer.py*
-%{_datadir}/clang/clang-tidy-diff.py*
-%{_datadir}/clang/run-clang-tidy.py*
-%{_datadir}/clang/run-find-all-symbols.py*
-%{_datadir}/clang/clang-rename.py*
-%{_datadir}/clang/index.js
-%{_datadir}/clang/clang-doc-default-stylesheet.css
+%{pkg_sharedir}/clang/clang-include-fixer.py*
+%{pkg_sharedir}/clang/clang-tidy-diff.py*
+%{pkg_sharedir}/clang/run-clang-tidy.py*
+%{pkg_sharedir}/clang/run-find-all-symbols.py*
+%{pkg_sharedir}/clang/clang-rename.py*
+%{pkg_sharedir}/clang/index.js
+%{pkg_sharedir}/clang/clang-doc-default-stylesheet.css
 
 %files -n git-clang-format
-%{_bindir}/git-clang-format
+%{_bindir}/git-clang-format%{bin_suffix}
 
 %changelog
+* Tue Apr 18 2023 jchzhou <zhoujiacheng@iscas.ac.cn> - 12.0.1-4
+- init for clang-12
+
 * Thu Sep 22 2022 linguoxiong <cokelin@hnu.edu.cn> - 12.0.1-3
 - Implement the "-aux-info" option to print function prototype
 
