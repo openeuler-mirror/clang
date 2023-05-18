@@ -1,0 +1,201 @@
+From e6c1017c1bc412148662f64156a4d60315e59eb3 Mon Sep 17 00:00:00 2001
+From: cokeom <cokelin@hnu.edu.cn>
+Date: Fri, 14 Oct 2022 18:20:15 +0800
+Subject: [PATCH] Implement ignored options and replaced options.
+
+---
+ include/clang/Basic/DiagnosticDriverKinds.td |  6 +++
+ include/clang/Driver/Options.td              | 25 ++++++++++++
+ lib/Driver/Driver.cpp                        | 41 ++++++++++++++++++++
+ lib/Driver/ToolChains/Clang.cpp              | 16 ++++++++
+ test/Driver/ignored-and-replaced-options.c   | 25 ++++++++++++
+ test/Misc/warning-flags.c                    |  3 +-
+ 6 files changed, 115 insertions(+), 1 deletion(-)
+ create mode 100644 test/Driver/ignored-and-replaced-options.c
+
+diff --git a/include/clang/Basic/DiagnosticDriverKinds.td b/include/clang/Basic/DiagnosticDriverKinds.td
+index ad13f923..bd7225b5 100644
+--- a/include/clang/Basic/DiagnosticDriverKinds.td
++++ b/include/clang/Basic/DiagnosticDriverKinds.td
+@@ -536,4 +536,10 @@ def err_drv_invalid_object_mode : Error<"OBJECT_MODE setting %0 is not recognize
+ 
+ def err_aix_default_altivec_abi : Error<
+   "The default Altivec ABI on AIX is not yet supported, use '-mabi=vec-extabi' for the extended Altivec ABI">;
++
++def warn_drv_ignore_options : Warning<"unsupported option '%0', ignore it.">,
++  InGroup<OptionIgnored>;
++
++def warn_drv_replace_options
++    : Warning<"unsupported option '%0', use '%1' instead.">;
+ }
+diff --git a/include/clang/Driver/Options.td b/include/clang/Driver/Options.td
+index 81779892..04521197 100644
+--- a/include/clang/Driver/Options.td
++++ b/include/clang/Driver/Options.td
+@@ -466,6 +466,31 @@ defvar std = !strconcat("LangStandard::getLangStandardForKind(", lang_std.KeyPat
+ //   C++ => CXX
+ //   . => _
+ 
++// Options to ignore and replace
++def clang_ignored_options_Group : OptionGroup<"<clang_ignored_options_Group>">,
++                                  Group<f_Group>,
++                                  Flags<[Ignored]>;
++def ip : Flag<["-"], "ip">,
++         Group<clang_ignored_options_Group>,
++         HelpText<"Enables additional interprocedural optimizations for "
++                  "single-file compilation">;
++def assume : Separate<["-"], "assume">,
++             Group<clang_ignored_options_Group>,
++             HelpText<"Determines whether units for the OPEN statement RECL "
++                      "specifier (record length) value in unformatted files "
++                      "are in bytes or longwords (four-byte units)">;
++def fdec : Flag<["-"], "fdec">,
++           Group<clang_ignored_options_Group>,
++           HelpText<"Enables extensions and other features that mimic the "
++                    "default behavior of older compilers (such as DEC)">;
++
++def clang_replaced_options_Group
++    : OptionGroup<"<clang_replaced_options_Group>">,
++      Group<f_Group>;
++def convert : Separate<["-"], "convert">,
++              Group<clang_replaced_options_Group>,
++              HelpText<"Generate big-endian/little-endian code">;
++
+ // Developer Driver Options
+ 
+ def internal_Group : OptionGroup<"<clang internal options>">, Flags<[HelpHidden]>;
+diff --git a/lib/Driver/Driver.cpp b/lib/Driver/Driver.cpp
+index 418e1d3e..95c0e256 100644
+--- a/lib/Driver/Driver.cpp
++++ b/lib/Driver/Driver.cpp
+@@ -996,6 +996,47 @@ Compilation *Driver::BuildCompilation(ArrayRef<const char *> ArgList) {
+   CLOptions = std::make_unique<InputArgList>(
+       ParseArgStrings(ArgList.slice(1), IsCLMode(), ContainsError));
+ 
++  // Compiler replacement option function.
++  for (auto *Opt :
++       CLOptions->filtered(options::OPT_clang_replaced_options_Group)) {
++    switch (Opt->getOption().getID()) {
++    default:
++      Diag(diag::err_drv_unsupported_opt) << Opt->getAsString(*CLOptions);
++      break;
++    case options::OPT_convert:
++      auto *OptLastArg =
++          CLOptions->getLastArg(options::OPT_mlittle_endian,
++                                options::OPT_mbig_endian, options::OPT_convert);
++      if (OptLastArg->getOption().matches(options::OPT_convert)) {
++        StringRef OptionValue = OptLastArg->getValue();
++        if (OptionValue.equals("big_endian")) {
++          Diag(diag::warn_drv_replace_options)
++              << OptLastArg->getAsString(*CLOptions) << "-mbig-endian";
++          StringRef SpellingReplaced = StringRef("-mbig-endian");
++          unsigned IndexReplaced = CLOptions->MakeIndex(SpellingReplaced);
++          Option OptReplaced = getOpts().getOption(options::OPT_mbig_endian);
++          Arg *ArgReplaced =
++              new Arg(OptReplaced, SpellingReplaced, IndexReplaced);
++          CLOptions->append(ArgReplaced);
++        } else if (OptionValue.equals("little_endian")) {
++          Diag(diag::warn_drv_replace_options)
++              << OptLastArg->getAsString(*CLOptions) << "-mlittle-endian";
++          StringRef SpellingReplaced = StringRef("-mlittle-endian");
++          unsigned IndexReplaced = CLOptions->MakeIndex(SpellingReplaced);
++          Option OptReplaced = getOpts().getOption(options::OPT_mlittle_endian);
++          Arg *ArgReplaced =
++              new Arg(OptReplaced, SpellingReplaced, IndexReplaced);
++          CLOptions->append(ArgReplaced);
++        } else {
++          Diag(diag::err_drv_unknown_argument)
++              << OptLastArg->getAsString(*CLOptions);
++        }
++      }
++      CLOptions->eraseArg(options::OPT_convert);
++      break;
++    }
++  }
++
+   // Try parsing configuration file.
+   if (!ContainsError)
+     ContainsError = loadConfigFile();
+diff --git a/lib/Driver/ToolChains/Clang.cpp b/lib/Driver/ToolChains/Clang.cpp
+index 1976b48e..706d0431 100644
+--- a/lib/Driver/ToolChains/Clang.cpp
++++ b/lib/Driver/ToolChains/Clang.cpp
+@@ -5178,6 +5178,22 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
+     A->claim();
+   }
+ 
++  // Warn about ignored options to clang
++  for (const Arg *A : Args.filtered(options::OPT_clang_ignored_options_Group)) {
++    if (A->getOption().matches(options::OPT_assume)) {
++      StringRef OptionValue = A->getValue();
++      if (OptionValue.equals("byterecl")) {
++        D.Diag(diag::warn_drv_ignore_options) << A->getAsString(Args);
++      } else {
++        D.Diag(diag::err_drv_unknown_argument) << A->getAsString(Args);
++      }
++      A->claim();
++      continue;
++    }
++    D.Diag(diag::warn_drv_ignore_options) << A->getAsString(Args);
++    A->claim();
++  }
++
+   claimNoWarnArgs(Args);
+ 
+   Args.AddAllArgs(CmdArgs, options::OPT_R_Group);
+diff --git a/test/Driver/ignored-and-replaced-options.c b/test/Driver/ignored-and-replaced-options.c
+new file mode 100644
+index 00000000..a13944db
+--- /dev/null
++++ b/test/Driver/ignored-and-replaced-options.c
+@@ -0,0 +1,25 @@
++// Test that Some options are ignored and replaced.
++//
++// REQUIRES: clang-driver
++
++// RUN: %clang -### -ip -c %s 2>&1 \
++// RUN:   | FileCheck --check-prefix=WARN %s
++// WARN: warning: unsupported option '-ip', ignore it.
++
++// RUN: %clang -### -fdec -c %s 2>&1 \
++// RUN:   | FileCheck --check-prefix=WARN1 %s
++// WARN1: warning: unsupported option '-fdec', ignore it.
++
++// RUN: %clang -### -assume byterecl -c %s 2>&1 \
++// RUN:   | FileCheck --check-prefix=WARN2 %s
++// WARN2: warning: unsupported option '-assume byterecl', ignore it.
++
++// RUN: %clang -convert little_endian -c %s 2>&1 \
++// RUN:   | FileCheck --check-prefix=WARN3 %s
++// WARN3: warning: unsupported option '-convert little_endian', use
++// '-mlittle-endian' instead.
++
++// RUN: %clang -convert big_endian -c %s 2>&1 \
++// RUN:   | FileCheck --check-prefix=WARN4 %s
++// WARN4: warning: unsupported option '-convert big_endian', use '-mbig-endian'
++// instead.
+\ No newline at end of file
+diff --git a/test/Misc/warning-flags.c b/test/Misc/warning-flags.c
+index 54e36e1e..1b9b779e 100644
+--- a/test/Misc/warning-flags.c
++++ b/test/Misc/warning-flags.c
+@@ -18,7 +18,7 @@ This test serves two purposes:
+ 
+ The list of warnings below should NEVER grow.  It should gradually shrink to 0.
+ 
+-CHECK: Warnings without flags (68):
++CHECK: Warnings without flags (69):
+ 
+ CHECK-NEXT:   ext_expected_semi_decl_list
+ CHECK-NEXT:   ext_explicit_specialization_storage_class
+@@ -47,6 +47,7 @@ CHECK-NEXT:   warn_double_const_requires_fp64
+ CHECK-NEXT:   warn_drv_assuming_mfloat_abi_is
+ CHECK-NEXT:   warn_drv_clang_unsupported
+ CHECK-NEXT:   warn_drv_pch_not_first_include
++CHECK-NEXT:   warn_drv_replace_options
+ CHECK-NEXT:   warn_dup_category_def
+ CHECK-NEXT:   warn_enum_value_overflow
+ CHECK-NEXT:   warn_expected_qualified_after_typename
+-- 
+2.25.1
+
