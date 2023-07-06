@@ -40,7 +40,7 @@
 
 Name:		%{pkg_name}
 Version:	%{clang_version}
-Release:	2
+Release:	3
 Summary:	A C language family front-end for LLVM
 
 License:	NCSA
@@ -50,6 +50,7 @@ Source1:	https://github.com/llvm/llvm-project/releases/download/llvmorg-%{clang_
 
 Patch0:     fedora-PATCH-clang-Reorganize-gtest-integration.patch
 Patch1:     fedora-PATCH-clang-Don-t-install-static-libraries.patch
+Patch2:     0002-Revert-Clang-Change-the-default-DWARF-version-to-5.patch
 
 Patch201:   fedora-clang-tools-extra-Make-test-dependency-on-LLVMHello-.patch
 
@@ -442,6 +443,9 @@ LD_LIBRARY_PATH=%{buildroot}/%{pkg_libdir}  %{__ninja} check-all -C ./_build/
 %{pkg_bindir}/git-clang-format
 
 %changelog
+* Thu Jul 06 2023 liyunfei <liyunfei33@huawei.com> - 15.0.7-3
+- Revert "Clang: Change the default DWARF version to 5"
+
 * Mon Feb 20 2023 Chenxi Mao <chenxi.mao@suse.com> - 15.0.7-1
 - Upgrade to 15.0.7.
 
